@@ -1,5 +1,3 @@
 flask
-moviepy
-imageio
-imageio-ffmpeg
+flask-cors
 yt-dlp
