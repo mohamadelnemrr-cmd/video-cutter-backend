@@ -1,44 +1,33 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify
 from flask_cors import CORS
-import os
-import uuid
-import yt_dlp
 
 app = Flask(__name__)
 CORS(app)
 
-OUTPUT_FOLDER = "outputs"
-os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+@app.route("/", methods=["GET"])
+def home():
+    return jsonify({"status": "backend running"})
 
-@app.route("/process", methods=["POST"])
-def process():
-    data = request.json
-    url = data.get("url")
+@app.route("/cut", methods=["POST"])
+def cut():
+    try:
+        data = request.get_json()
 
-    if not url:
-        return jsonify({"error": "No URL"}), 400
+        if not data or "url" not in data:
+            return jsonify({"error": "No URL provided"}), 400
 
-    video_id = str(uuid.uuid4())
-    file_path = os.path.join(OUTPUT_FOLDER, f"{video_id}.mp4")
+        url = data["url"]
 
-    ydl_opts = {
-        "outtmpl": file_path,
-        "format": "mp4"
-    }
+        # TEMP RESPONSE (we will add real cutting later)
+        return jsonify({
+            "status": "success",
+            "message": "Video received",
+            "video_url": url
+        })
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        ydl.download([url])
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
-    # We are NOT cutting on server anymore (to keep it stable)
-    # Instead we return the video directly
-
-    return jsonify({
-        "file": f"/download/{video_id}.mp4"
-    })
-
-@app.route("/download/<filename>")
-def download(filename):
-    return send_from_directory(OUTPUT_FOLDER, filename)
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    app.run()
