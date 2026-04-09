@@ -2,3 +2,4 @@ flask
 moviepy
 imageio
 imageio-ffmpeg
+yt-dlp
