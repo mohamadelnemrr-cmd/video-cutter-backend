@@ -1,7 +1,8 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 import os
-from moviepy.video.io.VideoFileClip import VideoFileClip
 import uuid
+import yt_dlp
+from moviepy.video.io.VideoFileClip import VideoFileClip
 
 app = Flask(__name__)
 
@@ -11,14 +12,26 @@ OUTPUT_FOLDER = "outputs"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
-@app.route("/upload", methods=["POST"])
-def upload():
-    file = request.files["video"]
-    filename = str(uuid.uuid4()) + ".mp4"
-    path = os.path.join(UPLOAD_FOLDER, filename)
-    file.save(path)
+@app.route("/process", methods=["POST"])
+def process():
+    data = request.json
+    url = data.get("url")
 
-    clip = VideoFileClip(path)
+    if not url:
+        return jsonify({"error": "No URL provided"}), 400
+
+    video_id = str(uuid.uuid4())
+    video_path = os.path.join(UPLOAD_FOLDER, f"{video_id}.mp4")
+
+    ydl_opts = {
+        'outtmpl': video_path,
+        'format': 'mp4'
+    }
+
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        ydl.download([url])
+
+    clip = VideoFileClip(video_path)
     duration = int(clip.duration)
 
     links = []
@@ -35,7 +48,7 @@ def upload():
 
 @app.route("/download/<filename>")
 def download(filename):
-    return app.send_static_file(os.path.join(OUTPUT_FOLDER, filename))
+    return send_from_directory(OUTPUT_FOLDER, filename)
 
 if __name__ == "__main__":
-    app.run()
+    app.run(host="0.0.0.0", port=10000)
